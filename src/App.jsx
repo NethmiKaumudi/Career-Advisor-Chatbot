@@ -2,31 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import LandingPage from './components/LandingPage';
 import ChatArea from './components/ChatArea';
 import MessageInput from './components/MessageInput';
-import BGImage1 from './assets/6031991.jpg'; // First image
-import BGImage2 from './assets/6100144.jpg'; // Second image
-import BGImage3 from './assets/10683103.jpg'; // Third image
+import BGImage1 from './assets/10683103.jpg'; // Static image
+
 function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const [bgIndex, setBgIndex] = useState(0); // For background image switching
   const messagesEndRef = useRef(null);
-
-  const backgroundImages = [BGImage1, BGImage2,BGImage3]; // Array of background images
 
   const suggestedTopics = [
     { id: 1, text: "Career Change", message: "I wanna switch careers, help me out, yo!" },
     { id: 2, text: "Resume Tips", message: "Make my resume POP, pretty please! 🎉" },
     { id: 3, text: "Interview Prep", message: "I got an interview—help me SLAY it! 💪" },
   ];
-
-  // Background image switching logic
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBgIndex((prev) => (prev + 1) % backgroundImages.length);
-    }, 5000); // Switch every 5 seconds
-    return () => clearInterval(interval); // Cleanup interval on unmount
-  }, [backgroundImages.length]);
 
   const handleStartChat = () => {
     setIsChatOpen(true);
@@ -78,8 +66,12 @@ function App() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-cover bg-center transition-opacity duration-1000"
-      style={{ backgroundImage: `url(${backgroundImages[bgIndex]})`, opacity: 1 }}
+      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: `url(${BGImage1})`,
+        backgroundSize: 'cover', // Use cover to fit the screen
+        backgroundPosition: 'center',
+      }}
     >
       {!isChatOpen ? (
         <LandingPage onStartChat={handleStartChat} />
