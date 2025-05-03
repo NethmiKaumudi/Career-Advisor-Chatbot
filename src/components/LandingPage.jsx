@@ -1,22 +1,70 @@
+import { Box, Typography, Button, Paper, Container } from '@mui/material';
+import SchoolIcon from '@mui/icons-material/School';
+
 function LandingPage({ onStartChat }) {
   return (
-    <div className="flex flex-col items-center justify-center h-screen text-center">
-      {/* Semi-transparent gradient middle box */}
-      <div className="bg-gradient-to-br from-purple-200/90 to-pink-100/90 backdrop-blur-sm p-8 rounded-xl shadow-lg border border-purple-300 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-xl hover:scale-105">
-        <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-pink-500 mb-4 animate-pulse drop-shadow-xl">
-          Welcome to Career Advisor! 🚀
-        </h1>
-        <p className="text-lg text-gray-900 mb-6 drop-shadow-xl">
-          Your super cool guide to career awesomeness—let’s get started! 🎉
-        </p>
-        <button
-          onClick={onStartChat}
-          className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg hover:from-pink-500 hover:to-purple-500 transition-all transform hover:scale-110 animate-bounce"
+    <Container maxWidth="md" sx={{ 
+      height: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center' 
+    }}>
+      <Paper 
+        elevation={6} 
+        sx={{ 
+          p: 6, 
+          borderRadius: 4,
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          textAlign: 'center',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: '0 16px 70px -12.125px rgba(0,0,0,0.3)'
+          }
+        }}
+      >
+        <SchoolIcon color="primary" sx={{ fontSize: 60, mb: 2 }} />
+        
+        <Typography 
+          variant="h3" 
+          component="h1" 
+          gutterBottom 
+          color="primary"
+          sx={{ fontWeight: 'bold' }}
         >
-          Get Career Advice Now! ✨
-        </button>
-      </div>
-    </div>
+          Education Advisor
+        </Typography>
+        
+        <Typography 
+          variant="h6" 
+          color="text.secondary" 
+          paragraph 
+          sx={{ maxWidth: 600, mx: 'auto', mb: 4 }}
+        >
+          Your personalized academic assistant ready to help with your future Target Job, Degrees, Courses and more.
+        </Typography>
+        
+        <Button 
+          variant="contained" 
+          size="large" 
+          onClick={onStartChat}
+          color="primary"
+          sx={{ 
+            py: 1.5, 
+            px: 4, 
+            borderRadius: 2,
+            fontSize: '1rem',
+            boxShadow: '0 4px 20px rgba(25, 118, 210, 0.3)',
+            '&:hover': {
+              boxShadow: '0 6px 25px rgba(25, 118, 210, 0.5)',
+            }
+          }}
+        >
+          Start a Conversation
+        </Button>
+      </Paper>
+    </Container>
   );
 }
 
