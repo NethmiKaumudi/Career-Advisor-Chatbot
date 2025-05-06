@@ -1,77 +1,102 @@
 import { Box, Paper, Typography, Avatar, List, ListItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
+import { memo, useEffect } from 'react';
 import SchoolIcon from '@mui/icons-material/School';
 import PersonIcon from '@mui/icons-material/Person';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import ReactMarkdown from 'react-markdown';
 
-function ChatArea({ messages, messagesEndRef }) {
-  // Helper function to detect if the text is formatted with markdown-like syntax
-  const isFormattedText = (text) => {
-    if (typeof text !== 'string') return false;
+// Memoize individual message component with improved text rendering
+const Message = memo(({ text, sender }) => {
+  // Function to process and format message text
+  const formatText = (text) => {
+    if (typeof text !== 'string') {
+      return JSON.stringify(text);
+    }
     
-    // Check for common markdown patterns like headers, bullet points, or sections with emojis
-    return (
-      text.includes('**') || 
-      text.includes('- ') || 
-      /[\*\-#]/.test(text) || 
-      /\n.*:/.test(text) ||
-      /[🛠️📚🎓🗺️]/.test(text)
-    );
-  };
-  
-  // Format nicely structured text
-  const renderFormattedText = (text) => {
-    if (!text || typeof text !== 'string') return "Error displaying message";
-    
-    return (
-      <Box sx={{ width: '100%' }}>
+    // If text contains line breaks, render with ReactMarkdown
+    if (text.includes('\n') || text.includes('**') || text.includes('- ') || text.includes('* ')) {
+      return (
         <ReactMarkdown
           components={{
-            h1: (props) => <Typography variant="h5" fontWeight="bold" color="primary.main" gutterBottom {...props} />,
-            h2: (props) => <Typography variant="h6" fontWeight="bold" color="primary.main" gutterBottom {...props} />,
-            h3: (props) => <Typography variant="subtitle1" fontWeight="bold" color="primary.main" gutterBottom {...props} />,
-            p: (props) => <Typography variant="body1" paragraph {...props} />,
-            strong: (props) => <Box component="span" fontWeight="bold" color="secondary.main" {...props} />,
-            ul: (props) => <List dense {...props} />,
-            li: (props) => (
-              <ListItem dense>
-                <ListItemIcon sx={{ minWidth: 24 }}>
-                  <FiberManualRecordIcon fontSize="small" color="primary" sx={{ fontSize: 10 }} />
-                </ListItemIcon>
-                <ListItemText 
-                  primary={props.children} 
-                  sx={{ m: 0 }}
-                />
-              </ListItem>
-            ),
+            p: ({children}) => <Typography variant="body1" sx={{ my: 1 }}>{children}</Typography>,
+            h1: ({children}) => <Typography variant="h6" fontWeight="bold" sx={{ mt: 2, mb: 1 }}>{children}</Typography>,
+            h2: ({children}) => <Typography variant="subtitle1" fontWeight="bold" sx={{ mt: 2, mb: 1 }}>{children}</Typography>,
+            h3: ({children}) => <Typography variant="subtitle2" fontWeight="bold" sx={{ mt: 1.5, mb: 0.5 }}>{children}</Typography>,
+            ul: ({children}) => <Box component="ul" sx={{ pl: 2, my: 1 }}>{children}</Box>,
+            ol: ({children}) => <Box component="ol" sx={{ pl: 2, my: 1 }}>{children}</Box>,
+            li: ({children}) => <Box component="li" sx={{ my: 0.5 }}>{children}</Box>,
+            strong: ({children}) => <Box component="span" fontWeight="bold">{children}</Box>,
           }}
         >
           {text}
         </ReactMarkdown>
-      </Box>
-    );
+      );
+    }
+    
+    // Simple text with better spacing for readability
+    return <Typography variant="body1">{text}</Typography>;
   };
 
-  // Helper function to safely render message text
-  const renderMessageText = (text) => {
-    if (typeof text === 'string') {
-      if (isFormattedText(text)) {
-        return renderFormattedText(text);
-      }
-      return text;
-    } else if (typeof text === 'object') {
-      // If it's an object, convert it to a string
-      return JSON.stringify(text);
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: sender === 'bot' ? 'flex-start' : 'flex-end',
+        mb: 2,
+        maxWidth: '85%',
+        alignSelf: sender === 'bot' ? 'flex-start' : 'flex-end',
+      }}
+    >
+      <Paper
+        elevation={1}
+        sx={{
+          p: 2,
+          borderRadius: 2,
+          bgcolor: sender === 'bot' ? '#f5f7fa' : '#3a7bd5',
+          color: sender === 'bot' ? '#2A3A51' : 'white',
+          width: '100%',
+          '& p': {
+            margin: '0.5em 0',
+            lineHeight: 1.6,
+          },
+          '& ul, & ol': {
+            marginTop: '0.5em',
+            marginBottom: '0.5em',
+            paddingLeft: '1.5em',
+          },
+          '& li': {
+            marginBottom: '0.3em',
+          },
+        }}
+      >
+        {formatText(text)}
+      </Paper>
+    </Box>
+  );
+});
+
+// Memoize the entire ChatArea component
+const ChatArea = memo(({ messages, messagesEndRef }) => {
+  // Add effect to ensure scrolling works properly
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Use requestAnimationFrame for smoother scrolling
+      const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      };
+      
+      const timeoutId = setTimeout(scrollToBottom, 100);
+      return () => clearTimeout(timeoutId);
     }
-    // Default fallback
-    return "Error displaying message";
-  };
+  }, [messages, messagesEndRef]);
 
   return (
     <Box 
       sx={{ 
         flexGrow: 1, 
+        height: '100%',
         overflowY: 'auto',
+        overflowX: 'hidden',
         p: 3,
         bgcolor: 'rgba(245, 247, 250, 0.8)',
         backgroundImage: 'none',
@@ -79,8 +104,10 @@ function ChatArea({ messages, messagesEndRef }) {
         display: 'flex',
         flexDirection: 'column',
         gap: 3,
+        // Make scrollbars visible and consistent across browsers
         '&::-webkit-scrollbar': {
           width: '8px',
+          height: '8px',
         },
         '&::-webkit-scrollbar-track': {
           background: 'rgba(0, 0, 0, 0.05)',
@@ -93,101 +120,24 @@ function ChatArea({ messages, messagesEndRef }) {
             background: 'rgba(58, 123, 213, 0.5)',
           },
         },
+        // Add Firefox scrollbar styling
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'rgba(58, 123, 213, 0.3) rgba(0, 0, 0, 0.05)',
       }}
     >
-      {messages.map(message => (
-        <Box
-          key={message.id}
-          sx={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 2,
-            maxWidth: '100%',
-            animation: message.sender === 'bot' ? 'fadeInLeft 0.3s ease-out' : 'fadeInRight 0.3s ease-out',
-            '@keyframes fadeInLeft': {
-              from: { opacity: 0, transform: 'translateX(-10px)' },
-              to: { opacity: 1, transform: 'translateX(0)' }
-            },
-            '@keyframes fadeInRight': {
-              from: { opacity: 0, transform: 'translateX(10px)' },
-              to: { opacity: 1, transform: 'translateX(0)' }
-            }
-          }}
-        >
-          <Avatar 
-            sx={{ 
-              bgcolor: message.sender === 'bot' ? 
-                '#3a7bd5' : 
-                '#5561B2',
-              width: 38,
-              height: 38,
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-              border: '1px solid rgba(255, 255, 255, 0.7)',
-            }}
-          >
-            {message.sender === 'bot' ? <SchoolIcon /> : <PersonIcon />}
-          </Avatar>
-          
-          <Paper
-            elevation={1}
-            sx={{
-              p: 2,
-              borderRadius: message.sender === 'bot' ? '2px 16px 16px 16px' : '16px 2px 16px 16px',
-              maxWidth: 'calc(100% - 60px)',
-              width: message.sender === 'bot' && isFormattedText(message.text) ? 'calc(100% - 60px)' : 'auto',
-              bgcolor: message.sender === 'bot' ? 
-                'white' : 
-                '#3a7bd5',
-              color: message.sender === 'bot' ? 'text.primary' : 'white',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                transform: 'translateY(-1px)',
-                boxShadow: '0 3px 10px rgba(0, 0, 0, 0.08)',
-              },
-              position: 'relative',
-              '&::before': message.sender === 'bot' ? {
-                content: '""',
-                position: 'absolute',
-                top: 0,
-                left: '-8px',
-                width: '16px',
-                height: '16px',
-                backgroundColor: 'white',
-                borderRadius: '0 0 16px 0',
-                clipPath: 'polygon(100% 0, 0 0, 100% 100%)',
-              } : {
-                content: '""',
-                position: 'absolute',
-                top: 0,
-                right: '-8px',
-                width: '16px',
-                height: '16px',
-                backgroundColor: '#3a7bd5',
-                borderRadius: '0 0 0 16px',
-                clipPath: 'polygon(0 0, 0 100%, 100% 0)',
-              }
-            }}
-          >
-            <Typography 
-              variant="body1" 
-              component="div" 
-              sx={{ 
-                whiteSpace: 'pre-wrap',
-                color: message.sender === 'bot' ? 'text.primary' : 'white',
-                fontWeight: message.sender !== 'bot' ? 500 : 400,
-                // Increase contrast for user messages
-                textShadow: message.sender !== 'bot' ? '0 1px 1px rgba(0,0,0,0.2)' : 'none',
-              }}
-            >
-              {renderMessageText(message.text)}
-            </Typography>
-          </Paper>
-        </Box>
-      ))}
+      <Box sx={{ 
+        width: '100%', 
+        display: 'flex', 
+        flexDirection: 'column',
+        flexGrow: 1,
+      }}>
+        {messages.map(message => (
+          <Message key={message.id} text={message.text} sender={message.sender} />
+        ))}
+      </Box>
       <div ref={messagesEndRef} />
     </Box>
   );
-}
+});
 
 export default ChatArea;

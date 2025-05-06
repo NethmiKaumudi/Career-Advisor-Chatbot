@@ -1,79 +1,52 @@
-import { Box, TextField, Button, InputAdornment, IconButton } from '@mui/material';
+import { memo } from 'react';
+import { Box, TextField, IconButton } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
-import MicIcon from '@mui/icons-material/Mic';
 
-function MessageInput({ input, setInput, handleSend, isLoading }) {
+// Memoize the MessageInput component to prevent unnecessary re-renders
+const MessageInput = memo(({ input, setInput, handleSend, isLoading }) => {
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
     <Box
       sx={{
         p: 2,
-        bgcolor: 'white',
         borderTop: '1px solid rgba(0, 0, 0, 0.06)',
-        boxShadow: 'none',
+        bgcolor: '#f8f9fa',
+        display: 'flex',
+        alignItems: 'center',
       }}
     >
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          gap: 1,
-          position: 'relative',
+      <TextField
+        fullWidth
+        value={input}
+        onChange={setInput}
+        onKeyPress={handleKeyPress}
+        placeholder="Type your question here..."
+        variant="outlined"
+        autoComplete="off"
+        disabled={isLoading}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 3,
+            bgcolor: 'white',
+          }
         }}
+      />
+      <IconButton
+        color="primary"
+        onClick={handleSend}
+        disabled={isLoading || !input.trim()}
+        sx={{ ml: 1 }}
       >
-        <TextField
-          fullWidth
-          variant="outlined"
-          size="medium"
-          placeholder="Type your question here..."
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyPress={e => e.key === 'Enter' && !isLoading && handleSend()}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-              background: '#f5f7fa',
-              boxShadow: 'none',
-              transition: 'all 0.2s',
-              '&:hover': {
-                background: '#edf0f5',
-              },
-              '&.Mui-focused': {
-                background: '#ffffff',
-                boxShadow: '0 0 0 2px rgba(58, 123, 213, 0.2)',
-              }
-            },
-            '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(0, 0, 0, 0.12)',
-            },
-          }}
-          disabled={isLoading}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <Button
-                  onClick={handleSend}
-                  disabled={!input.trim() || isLoading}
-                  variant="contained"
-                  color="primary"
-                  sx={{ 
-                    borderRadius: 2,
-                    minWidth: '90px',
-                    height: '40px',
-                    boxShadow: 'none',
-                    '&:hover': {
-                      boxShadow: '0 2px 6px rgba(58, 123, 213, 0.3)',
-                    },
-                  }}
-                >
-                  {isLoading ? 'Sending...' : 'Send'}
-                  <SendIcon sx={{ ml: 1, fontSize: '1.2rem' }} />
-                </Button>
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Box>
+        <SendIcon />
+      </IconButton>
     </Box>
   );
-}
+});
 
 export default MessageInput;

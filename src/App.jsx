@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Container, 
   CssBaseline, 
@@ -90,6 +90,7 @@ function App() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   const suggestedTopics = [
     { id: 1, text: "Software Engineer", message: "How to be a Software Engineer..?" },
@@ -97,21 +98,22 @@ function App() {
     { id: 3, text: "Can I be a Teacher", message: "Skills to be a Teacher" },
   ];
 
-  const handleStartChat = () => {
+  // Memoize handlers with useCallback to prevent recreating functions on every render
+  const handleStartChat = useCallback(() => {
     setIsChatOpen(true);
     setMessages([
       { id: 1, text: "Hello! I'm your Education Advisor, here to help with your academic questions and concerns. What would you like assistance with today?", sender: 'bot' }
     ]);
-  };
+  }, []);
 
-  const handleCloseChat = () => {
+  const handleCloseChat = useCallback(() => {
     setIsChatOpen(false);
     setMessages([]);
     setInput('');
-  };
+  }, []);
 
-  // Function to send message to API
-  const sendMessageToAPI = async (message) => {
+  // Function to send message to API - memoized with useCallback
+  const sendMessageToAPI = useCallback(async (message) => {
     try {
       setIsLoading(true);
       const response = await fetch('http://127.0.0.1:5000/chat', {
@@ -119,15 +121,14 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query: message }), // Changed 'message' to 'query' to match backend
+        body: JSON.stringify({ query: message }),
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`); //Improved error handling
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
-      // Extract text response from the API response object
       return data.response || "Sorry, I couldn't process your request.";
     } catch (error) {
       console.error('Error sending message to API:', error);
@@ -135,50 +136,65 @@ function App() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const handleTopicClick = async (topicMessage) => {
-    const newMessage = { id: messages.length + 1, text: topicMessage, sender: 'user' };
-    setMessages([...messages, newMessage]);
+  const handleTopicClick = useCallback(async (topicMessage) => {
+    if (isLoading) return; // Prevent multiple submissions
+
+    const newMessage = { id: Date.now(), text: topicMessage, sender: 'user' };
+    
+    // Use functional updates to ensure we're working with the latest state
+    setMessages(prevMessages => [...prevMessages, newMessage]);
 
     const botResponse = await sendMessageToAPI(topicMessage);
     
-    // Make sure we're handling the response properly
     const responseText = typeof botResponse === 'object' ? 
       (botResponse.response || JSON.stringify(botResponse)) : 
       botResponse;
     
-    setMessages(prev => [...prev, {
-      id: prev.length + 1,
+    setMessages(prevMessages => [...prevMessages, {
+      id: Date.now() + 1,
       text: responseText,
       sender: 'bot'
     }]);
-  };
+  }, [isLoading, sendMessageToAPI]);
 
-  const handleSend = async () => {
-    if (input.trim()) {
+  // Debounced input handler
+  const handleInputChange = useCallback((e) => {
+    setInput(e.target.value);
+  }, []);
+
+  const handleSend = useCallback(async () => {
+    if (input.trim() && !isLoading) {
       const userMessage = input;
-      const newMessage = { id: messages.length + 1, text: userMessage, sender: 'user' };
-      setMessages([...messages, newMessage]);
+      const newMessage = { id: Date.now(), text: userMessage, sender: 'user' };
+      
+      // Optimize state updates using functional form
+      setMessages(prevMessages => [...prevMessages, newMessage]);
       setInput('');
 
       const botResponse = await sendMessageToAPI(userMessage);
       
-      // Make sure we're handling the response properly
       const responseText = typeof botResponse === 'object' ? 
         (botResponse.response || JSON.stringify(botResponse)) : 
         botResponse;
       
-      setMessages(prev => [...prev, {
-        id: prev.length + 1,
+      setMessages(prevMessages => [...prevMessages, {
+        id: Date.now() + 1,
         text: responseText,
         sender: 'bot'
       }]);
     }
-  };
+  }, [input, isLoading, sendMessageToAPI]);
 
+  // Optimize scroll behavior
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 0) {
+      // Use requestAnimationFrame for smoother scrolling
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      });
+    }
   }, [messages]);
 
   return (
@@ -205,6 +221,7 @@ function App() {
                 display: 'flex', 
                 flexDirection: 'column', 
                 height: '85vh',
+                maxHeight: '85vh', // Added explicit max-height
                 borderRadius: 3,
                 overflow: 'hidden',
                 backdropFilter: 'blur(10px)',
@@ -279,7 +296,20 @@ function App() {
                 ))}
               </Box>
               
-              <ChatArea messages={messages} messagesEndRef={messagesEndRef} />
+              <Box 
+                sx={{ 
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: 'calc(100% - 120px)', // Adjust based on header/footer heights
+                  overflow: 'hidden',
+                }}
+              >
+                <ChatArea 
+                  messages={messages} 
+                  messagesEndRef={messagesEndRef} 
+                />
+              </Box>
               
               {isLoading && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
@@ -289,7 +319,7 @@ function App() {
               
               <MessageInput 
                 input={input} 
-                setInput={setInput} 
+                setInput={handleInputChange} 
                 handleSend={handleSend} 
                 isLoading={isLoading}
               />
